@@ -114,6 +114,12 @@ local function createInstallationFolder()
     end
 end
 
+local function removeOldVersion()
+    if fs.exists(installFolder) then
+        fs.delete(installFolder)
+    end
+end
+
 local function install()
     if not isPocket then
         printError("This installer is only for Pocket Computers!")
@@ -145,6 +151,7 @@ local function install()
     bar(0)
     totalDownloaded = 0
 
+    removeOldVersion()
     downloadAll(DOWNLOADS, #DOWNLOADS)
     update("Installing basalt...")
     term.setTextColor(colors.black)
