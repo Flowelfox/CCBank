@@ -105,6 +105,12 @@ local function checkCurrentVersion()
     return nil
 end
 
+local function createInstallationFolder()
+    if not fs.exists(installFolder) then
+        fs.makeDir(installFolder)
+    end
+end
+
 local function install()
     if not isPocket then
         printError("This installer is only for Pocket Computers!")
