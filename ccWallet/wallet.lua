@@ -4,8 +4,7 @@ local basalt = require("basalt")
 local bankAPI = require("bankAPI")
 
 -- Config
-local disableLogging = false
-local server = ""
+local disableLogging = true
 local modemSide = "back"
 
 local function getWalletServer()
@@ -15,7 +14,7 @@ local function getWalletServer()
     return server
 end
 
-server = getWalletServer()
+local server = getWalletServer()
 
 local function log(message)
     if not disableLogging then
