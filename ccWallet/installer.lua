@@ -67,7 +67,7 @@ end
 local function downloadAll(downloads, total)
     local nextFile = table.remove(downloads, 1)
     if nextFile then
-        sleep(0.5)
+        sleep(0.3)
         parallel.waitForAll(function() downloadAll(downloads, total) end, function()
             download(nextFile, 1)
             totalDownloaded = totalDownloaded + 1
@@ -81,6 +81,7 @@ local function installBasalt()
         fs.delete("startup")
     end
     shell.run(installFolder .. "/install.lua", "release", "latest.lua")
+    fs.delete(installFolder .. "/basalt.lua")
     shell.run("mv", "basalt.lua", installFolder .. "/basalt.lua")
     fs.delete(installFolder .. "/install.lua")
 end
@@ -92,7 +93,7 @@ local function rewriteStartup()
     file.writeLine("shell.run(\"".. installFolder .. "/setupWalletServer.lua\")")
     file.writeLine("while (true) do")
     file.writeLine("	shell.run(\"" .. installFolder .. "/wallet.lua\")")
-    file.writeLine("	sleep(2)")
+    file.writeLine("	sleep(1)")
     file.writeLine("end")
     file.close()
 end

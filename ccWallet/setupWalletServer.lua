@@ -2,6 +2,8 @@ local bankAPI = require("bankAPI")
 local basalt = require("basalt")
 
 
+term.clear()
+term.setCursorPos(1, 1)
 local function main()
     if fs.exists(".walletServerAddress.txt") then
         return
