@@ -20,6 +20,10 @@ local api = id:Protocol {
 local server = nil
 local timeout = 5
 local side = 'back'
+local isPocket = false
+if pocket then
+    isPocket = true
+end
 
 local function log(message)
     print("[bankAPI] " .. message)
@@ -183,7 +187,7 @@ function bankAPI.login(login, password)
         return false, "Can't connect to the server"
     end
     -- Send a message.
-    connection:send({command = "login", login = login, password = password, isPocket = pocket})
+    connection:send({command = "login", login = login, password = password, isPocket = isPocket})
     local response = waitResponse(connection, timeout)
     if response == nil then
         connection:send({command = "close"})
