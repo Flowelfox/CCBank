@@ -39,7 +39,7 @@ local function main()
     os.setComputerLabel("Wallet")
     local isInitiated = bankAPI.init(server, modemSide, log)
     if isInitiated == false then
-        printError("Failed to initialize bank API")
+        printError("Failed to initialize API")
         return
     end
 

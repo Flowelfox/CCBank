@@ -18,6 +18,7 @@ local api = id:Protocol {
 }
 local server = nil
 local timeout = 5
+local side = 'back'
 
 local function log(message)
     print("[bankAPI] " .. message)

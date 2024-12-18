@@ -1,38 +1,54 @@
-local NAME = "Bank Server Installer"
-local REPO_LINK = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main"
+local NAME = "Wallet Installer"
 
 local DOWNLOADS = {}
 local argStr = table.concat({...}, " ")
 
-DOWNLOADS[#DOWNLOADS + 1] = "wallet.lua"
-DOWNLOADS[#DOWNLOADS + 1] = "sha256.lua"
-DOWNLOADS[#DOWNLOADS + 1] = "ecnet2.lua"
-
+DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/version.txt"
+DOWNLOADS[#DOWNLOADS + 1] = "https://basalt.madefor.cc/install.lua"
+DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/bankAPI.lua"
+DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/wallet.lua"
+DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/sha256.lua"
+DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/ecnet2.lua"
 
 local width, height = term.getSize()
 local totalDownloaded = 0
+local barLine = 6
+local line = 8
+local isPocket = true
+if pocket then
+    isPocket = true
+end
 
 local function update(text)
     term.setBackgroundColor(colors.black)
     term.setTextColor(colors.white)
-    term.setCursorPos(1, 9)
-    term.clearLine()
-    term.setCursorPos(math.floor(width / 2 - string.len(text) / 2 + 0.5), 9)
+    term.setCursorPos(1, line)
     write(text)
+    line = line + 1
 end
 
 local function bar(ratio)
     term.setBackgroundColor(colors.gray)
     term.setTextColor(colors.lime)
-    term.setCursorPos(1, 11)
+    term.setCursorPos(1, barLine)
     for i = 1, width do
-        if (i / width < ratio) then write("]") else write(" ") end
+        if (i / width < ratio) then write("|") else write(" ") end
     end
 end
 
+local function checkRemoteVersion(attempt)
+    local rawData = http.get(DOWNLOADS[1])
+    if not rawData then
+        if attempt == 3 then error("Failed to check version after 3 attempts!") end
+        return checkRemoteVersion(attempt + 1)
+    end
+    return rawData.readAll()
+end
+
 local function download(path, attempt)
-    local rawData = http.get(REPO_LINK .. path)
-    update("Downloaded " .. path .. "!")
+    local rawData = http.get(path)
+    local fileName = path:match("^.+/(.+)$")
+    update("Downloaded " .. fileName .. "!")
     if not rawData then
         if attempt == 3 then error("Failed to download " .. path .. " after 3 attempts!") end
         update("Failed to download " .. path .. ". Trying again (attempt " .. (attempt + 1) .. "/3)")
@@ -40,8 +56,7 @@ local function download(path, attempt)
     end
     local data = rawData.readAll()
 
-    local filename = path:sub((path:find("/") or 0) + 1) -- remove folder from path
-    local file = fs.open(filename, "w")
+    local file = fs.open(fileName, "w")
     file.write(data)
     file.close()
 end
@@ -49,7 +64,7 @@ end
 local function downloadAll(downloads, total)
     local nextFile = table.remove(downloads, 1)
     if nextFile then
-        sleep(0.1)
+        sleep(1)
         parallel.waitForAll(function() downloadAll(downloads, total) end, function()
             download(nextFile, 1)
             totalDownloaded = totalDownloaded + 1
@@ -58,38 +73,96 @@ local function downloadAll(downloads, total)
     end
 end
 
+local function installBasalt()
+    if fs.exists("startup") then
+        fs.delete("startup")
+    end
+    shell.run("install", "release", "latest.lua")
+    fs.delete("install.lua")
+end
+
+local function rewriteStartup()
+    local file = fs.open("startup", "w")
+
+    file.writeLine("shell.run(\"installer.lua\")")
+    file.writeLine("while (true) do")
+    file.writeLine("	shell.run(\"wallet.lua\")")
+    file.writeLine("	sleep(2)")
+    file.writeLine("end")
+    file.close()
+end
+
+local function checkCurrentVersion()
+    if fs.exists("version.txt") then
+        local file = fs.open("version.txt", "r")
+        local version = file.readAll()
+        file.close()
+        return version
+    end
+    return nil
+end
+
 local function install()
+    if not isPocket then
+        printError("This installer is only for Pocket Computers!")
+    end
+
+    -- Check version first without writing to file
+    local newVersion = checkRemoteVersion(1)
+    local currentVersion = checkCurrentVersion()
+    
+    if currentVersion == newVersion then
+        return
+    end
+
     term.setBackgroundColor(colors.black)
     term.setTextColor(colors.yellow)
     term.clear()
 
     term.setCursorPos(math.floor(width / 2 - #NAME / 2 + 0.5), 2)
     write(NAME)
-    update("Installing...")
+
+    term.setTextColor(colors.white)
+    term.setCursorPos(1, barLine - 2)
+    if currentVersion then
+        term.write("Updating from " .. currentVersion .. " to " .. newVersion .. "...")
+    else
+        term.write("Installing version " .. newVersion .. "...")
+    end
+
     bar(0)
-
     totalDownloaded = 0
+
     downloadAll(DOWNLOADS, #DOWNLOADS)
+    update("Installing basalt...")
+    term.setTextColor(colors.black)
+    term.setBackgroundColor(colors.black)
+    term.setCursorPos(1, line + 1)
 
-    update("Installation finished!")
+    installBasalt()
+    term.setCursorPos(1, line)
 
-    sleep(1)
+    term.setTextColor(colors.green)
+    term.setBackgroundColor(colors.black)
+    if currentVersion then
+        update("Updated to version " .. newVersion .. "!")
+    else
+        update("Installed version " .. newVersion .. "!")
+    end
+    
+    rewriteStartup()
 
+    for i = 1, 3 do
+        term.setCursorPos(1, line)
+        term.clearLine()
+        term.write("Rebooting in " .. (4 - i) .. " seconds...")
+        sleep(1)
+    end
+    
     term.setBackgroundColor(colors.black)
     term.setTextColor(colors.white)
-
     term.clear()
-
-    term.setCursorPos(1, 1)
-
-    if argStr:lower():find("noconfirm") then return end
-
-    write("Finished installation!\nPress any key to close...")
-
-    os.pullEventRaw()
-
-    term.clear()
-    term.setCursorPos(1, 1)
+    os.reboot()
 end
 
 install()
