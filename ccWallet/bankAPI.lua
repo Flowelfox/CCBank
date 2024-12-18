@@ -1,6 +1,7 @@
 local bankAPI = {}
 local ecnet2 = require("ecnet2")
 local random = require("ccryptolib.random")
+local serversChannel = 58235
 
 
 random.initWithTiming()
@@ -244,6 +245,37 @@ function bankAPI.logout()
         fs.delete(".token")
         connection:send({command = "close"})
         return true
+    end
+end
+
+function bankAPI.getRunningServers(modemSide)
+    local modem = peripheral.wrap(modemSide)
+    local replyChannel = math.random(1, 65535)
+    local stopSearch = false
+    local servers = {}
+    os.startTimer(2)
+    
+    modem.open(replyChannel)
+    modem.transmit(serversChannel, replyChannel, "getServers")
+    while true do
+        local event, side, channel, _, message, distance
+        repeat
+            event, side, channel, _, message, distance = os.pullEvent()
+            if event == "timer" then
+                stopSearch = true
+                break
+            end
+        until event == "modem_message" and channel == replyChannel
+        if stopSearch then
+            modem.close(replyChannel)
+            return servers
+        end
+        if message ~= nil then
+            if message:sub(1, 15) == "serverAvailable" then
+                local serverData = textutils.unserialize(message:sub(16))
+                table.insert(servers, serverData)
+            end
+        end
     end
 end
 

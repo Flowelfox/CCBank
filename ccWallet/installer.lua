@@ -10,6 +10,7 @@ DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWalle
 DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/wallet.lua"
 DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/sha256.lua"
 DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/ecnet2.lua"
+DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/setupWalletServer.lua"
 
 local width, height = term.getSize()
 local totalDownloaded = 0
@@ -88,6 +89,7 @@ local function rewriteStartup()
     local file = fs.open("startup", "w")
 
     file.writeLine("shell.run(\"".. installFolder .. "/installer.lua\")")
+    file.writeLine("shell.run(\"".. installFolder .. "/setupWalletServer.lua\")")
     file.writeLine("while (true) do")
     file.writeLine("	shell.run(\"" .. installFolder .. "/wallet.lua\")")
     file.writeLine("	sleep(2)")

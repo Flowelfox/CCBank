@@ -5,11 +5,17 @@ local bankAPI = require("bankAPI")
 
 -- Config
 local disableLogging = false
-local server = "FgP-tThtzfF0H01in9Bj1Kod7RYua8io04QVAGPJTlk="
+local server = ""
 local modemSide = "back"
 
+local function getWalletServer()
+    local addressFile = fs.open(".walletServerAddress.txt", "r")
+    local server = addressFile.readAll()
+    addressFile.close()
+    return server
+end
 
-
+server = getWalletServer()
 
 local function log(message)
     if not disableLogging then
