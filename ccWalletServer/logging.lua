@@ -1,60 +1,84 @@
-local function hang()
-    while true do
-        local event, key, is_held = os.pullEvent("key")
-        if key ~= nil then
-            return
-        end
-        sleep(1)
-    end
-end
-
-local function setup(monitor_name, level)
+local function setup(monitor_name, level, file, writeToTerminal)
     level = level or "INFO"
+    file = file or nil
+    writeToTerminal = writeToTerminal or true
 
     settings.load()
     local settingsData = settings.get("logging")
     settingsData = {
         logLevel = level,
-        logMonitor = monitor_name
+        logMonitor = monitor_name,
+        logFile = file,
+        writeToTerminal = writeToTerminal
     }
     settings.set("logging", settingsData)
     settings.save()
     return settingsData
 end
 
-local function loadSettings()
+local function loadLoggingSettings()
     local settingsData = settings.get("logging")
     if settingsData == nil then
-        settingsData = setup("", "INFO")
+        settingsData = setup("", "INFO", nil, true)
     end
     return settingsData
 end
 
 local function getLoggingMonitor()  
-    local settingsData = loadSettings()
+    local settingsData = loadLoggingSettings()
     local loggingMonitor = peripheral.find(settingsData.logMonitor)
     if loggingMonitor == nil then
-        return term
+        return nil
     else
         loggingMonitor.setTextScale(0.5)
         return loggingMonitor
     end
 end
 
+local function getLoggingLevel()
+    local settingsData = loadLoggingSettings()
+    return settingsData.logLevel
+end
+
+local function getLogFile()
+    local settingsData = loadLoggingSettings()
+    return settingsData.logFile
+end
+
+local function getWriteToTerminal()
+    local settingsData = loadLoggingSettings()
+    return settingsData.writeToTerminal
+end
+
 
 local function setLoggingMonitor(monitor)
-    local settingsData = loadSettings()
+    local settingsData = loadLoggingSettings()
     settingsData.logMonitor = monitor
     settings.set("logging", settingsData)
     settings.save()
 end
 
 local function setLoggingLevel(level)
-    local settingsData = loadSettings()
+    local settingsData = loadLoggingSettings()
     settingsData.logLevel = level
     settings.set("logging", settingsData)
     settings.save()
 end
+
+local function setLogFile(file)
+    local settingsData = loadLoggingSettings()
+    settingsData.logFile = file
+    settings.set("logging", settingsData)
+    settings.save()
+end
+
+local function setWriteToTerminal(writeToTerminal)
+    local settingsData = loadLoggingSettings()
+    settingsData.writeToTerminal = writeToTerminal
+    settings.set("logging", settingsData)
+    settings.save()
+end
+
 
 
 local function logingLevelIndex(level)
@@ -72,7 +96,7 @@ local function logingLevelIndex(level)
 end
 
 local function getLoggingLevel()
-    local settingsData = loadSettings()
+    local settingsData = loadLoggingSettings()
     local logLevelIndex = logingLevelIndex(settingsData.logLevel)
     if logLevelIndex == nill then
         printError("Logging level not set, setting to \"INFO\"")
@@ -84,47 +108,102 @@ local function getLoggingLevel()
 end
 
 local function _log(text, level)
+    local terminal = term.current()
     local loggingMonitor = getLoggingMonitor()
     local loggingLevel = getLoggingLevel()
+    local logFile = getLogFile()
+    local writeToTerminal = getWriteToTerminal()
 
-    local x, y = loggingMonitor.getCursorPos()
     local currentLevelIndex = logingLevelIndex(level)
     if currentLevelIndex < logingLevelIndex(loggingLevel) then
         return
     end
 
     if level == "DEBUG" then
-        loggingMonitor.setTextColor(colors.gray)
+        if loggingMonitor ~= nil then
+            loggingMonitor.setTextColor(colors.gray)
+        end
+        if writeToTerminal then
+            terminal.setTextColor(colors.gray)
+        end
     elseif level == "INFO" then
-        loggingMonitor.setTextColor(colors.lightBlue)
+        if loggingMonitor ~= nil then
+            loggingMonitor.setTextColor(colors.lightBlue)
+        end
+        if writeToTerminal then
+            terminal.setTextColor(colors.lightBlue)
+        end
     elseif level == "WARNING" then
-        loggingMonitor.setTextColor(colors.yellow)
+        if loggingMonitor ~= nil then
+            loggingMonitor.setTextColor(colors.yellow)
+        end
+        if writeToTerminal then
+            terminal.setTextColor(colors.yellow)
+        end
     elseif level == "ERROR" then
-        loggingMonitor.setTextColor(colors.red)
+        if loggingMonitor ~= nil then
+            loggingMonitor.setTextColor(colors.red)
+        end
+        if writeToTerminal then
+            terminal.setTextColor(colors.red)
+        end
     elseif level == "CRITICAL" then
-        loggingMonitor.setTextColor(colors.red)
-        loggingMonitor.write("!!!")
+        if loggingMonitor ~= nil then
+            loggingMonitor.setTextColor(colors.red)
+            loggingMonitor.write("!!!")
+        end
+        if writeToTerminal then
+            terminal.setTextColor(colors.red)
+            terminal.write("!!!")
+        end
     end
-
-    
-    local width, height = loggingMonitor.getSize()
-    
-    if y >= height then
-        loggingMonitor.scroll(1)
-        loggingMonitor.setCursorPos(1, height)
-    else
-        loggingMonitor.setCursorPos(1, y + 1)
-    end
-
-
+    -- Prepare the log line
     local currentTime = os.date("%T")
-    loggingMonitor.write(currentTime .. " (".. level .."): " .. text)
+    local line = currentTime .. " (".. level .."): " .. text
+
+    -- Write to the monitor
+    if loggingMonitor ~= nil then
+        local width, height = loggingMonitor.getSize()
+        local x, y = loggingMonitor.getCursorPos()
+        if y >= height then
+            loggingMonitor.scroll(1)
+            loggingMonitor.setCursorPos(1, height)
+        else
+            loggingMonitor.setCursorPos(1, y + 1)
+        end
+        loggingMonitor.write(line)
+    end
+
+    -- Write to the terminal
+    if writeToTerminal then
+        local width, height = terminal.getSize()
+        local x, y = terminal.getCursorPos()
+        if y >= height then
+            terminal.scroll(1)
+            terminal.setCursorPos(1, height)
+        else
+            terminal.setCursorPos(1, y + 1)
+        end
+        terminal.write(line)
+    end
+
+    -- Write to the log File
+    if logFile ~= nil then
+        local loggingFile = fs.open(logFile, "a")
+        loggingFile.writeLine(line)
+        loggingFile.close()    
+    end
 end
 
 
 function clear()
     local loggingMonitor = getLoggingMonitor()
-    loggingMonitor.clear()
+    if loggingMonitor ~= nil then
+        loggingMonitor.clear()
+    end
+    local terminal = term.current()
+    terminal.clear()
+
 end
 
 local function logDebug(text)
@@ -145,6 +224,10 @@ end
 
 local export = {
     setup = setup,
+    setLoggingMonitor = setLoggingMonitor,
+    setLoggingLevel = setLoggingLevel,
+    setLogFile = setLogFile,
+    setWriteToTerminal = setWriteToTerminal,
     debug = logDebug,
     info = logInfo,
     warning = logWarning,

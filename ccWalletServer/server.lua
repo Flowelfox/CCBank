@@ -5,7 +5,6 @@ local logging = require "logging"
 
 
 local serverName = "Wallet server"
-local modemSide = "back"
 local usersPath = '.users'
 local sessionsPath = '.sessions'
 local perDayAmount = 100
@@ -14,6 +13,9 @@ local serversChannel = 58235
 
 
 
+logging.setLoggingLevel(logging.INFO)
+logging.setLogFile("latest.log")
+logging.setWriteToTerminal(true)
 
 random.initWithTiming()
 math.randomseed(os.time())
@@ -122,10 +124,25 @@ local function checkToken(token)
     return true
 end
 
+local function getModemSide()
+    local sides = peripheral.getNames()
+    for _, side in ipairs(sides) do
+        if peripheral.getType(side) == "modem" then
+            return side
+        end
+    end
+    return nil
+end
+
+local function getModem()
+    local modemSide = getModemSide()
+    return peripheral.wrap(modemSide)
+ end
+
 local connections = {}
 local function main()
     logging.info("Starting server...")
-    ecnet2.open(modemSide)
+    ecnet2.open(getModemSide())
     
     -- Define a protocol.
     local api = identity:Protocol {
@@ -206,6 +223,7 @@ local function main()
                             writeUsers(users)
 
                             connections[id]:send({type='success', message="Money sent"})
+                            logging.info("User \"" .. session.login .. "\" sent " .. amount .. "$ to " .. recipient)
                         end
                     end
                 end
@@ -297,9 +315,11 @@ local function main()
     end
 end
 
+
+
 local function getRunningServers()
     logging.info("Getting other running servers...")
-    local modem = peripheral.wrap(modemSide)
+    local modem = getModem()
     local replyChannel = math.random(1, 65535)
     local servers = {}
     os.startTimer(2)
@@ -329,7 +349,7 @@ local function getRunningServers()
 end
 
 local function broadcastServerName()
-    local modem = peripheral.wrap(modemSide)
+    local modem = getModem()
     modem.open(serversChannel)
     modem.transmit(serversChannel, 65535 , "serverConnected " .. serverName)
 
@@ -384,6 +404,12 @@ local function assignMoney()
         end
         sleep(5)
     end
+end
+
+local checkModem = getModemSide()
+if checkModem == nil then
+    logging.error("No modem found")
+    return
 end
 
 local runningServers = getRunningServers()
