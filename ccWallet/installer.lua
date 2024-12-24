@@ -123,6 +123,7 @@ end
 local function install()
     if not isPocket then
         printError("This installer is only for Pocket Computers!")
+        return
     end
 
     -- Check version first without writing to file

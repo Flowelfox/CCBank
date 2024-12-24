@@ -154,6 +154,36 @@ function bankAPI.getUser()
     
 end
 
+function bankAPI.getRegisteredUsers()
+    local connection = createConnection()
+    -- Send a message.
+    local token = readToken()
+    connection:send({command = "getRegisteredUsers", token = token})
+    local response = waitResponse(connection, timeout)
+    if response == nil then
+        connection:send({command = "close"})
+        return false
+    end
+
+    local type = response['type']
+    local users = response['users']
+    local message = response['message']
+    
+    if type == "error" then
+        log(type .. ": " .. message)
+        connection:send({command = "close"})
+        return {}
+    elseif type == "success" then
+        log("Got registered users")
+        connection:send({command = "close"})
+        return users
+    elseif type == nil or users == nil then
+        log("Invalid response")
+        connection:send({command = "close"})
+        return {}
+    end
+end
+
 function bankAPI.register(login, password)
     local connection = createConnection()
     if connection == nil then

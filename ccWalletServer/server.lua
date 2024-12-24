@@ -192,6 +192,22 @@ local function main()
                     connections[id]:send({type='success', user=clearedUser})
                 end
 
+            elseif command == "getRegisteredUsers" then
+                local users = loadUsers()
+                local sessions = loadSessions()
+                local token = data['token']
+
+                local checkResult = checkToken(token)
+                if  checkResult ~= true then
+                    connections[id]:send({type='error', message=checkResult})
+                else
+                    local clearedUsers = {}
+                    for login, user in pairs(users) do
+                        table.insert(clearedUsers, login)
+                    end
+                    connections[id]:send({type='success', users=clearedUsers})
+                end
+
             elseif command == "sendMoney" then
                 local users = loadUsers()
                 local sessions = loadSessions()

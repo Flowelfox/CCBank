@@ -4,7 +4,7 @@ local basalt = require("basalt")
 local bankAPI = require("bankAPI")
 
 -- Config
-local disableLogging = true
+local disableLogging = false
 local modemSide = "back"
 
 local function getWalletServer()
@@ -313,12 +313,12 @@ local function main()
         :setPosition(1,3)
         :setSize(10,1)
 
-
     local sendToInput = sendMenu:addInput()
         :setPosition(1, 4)
         :setSize(20, 1)
         :setInputLimit(20)
         :setInputType("text")
+        :setZIndex(1)
 
     sendMenu:addLabel()
         :setText("Amount: ")
@@ -331,6 +331,7 @@ local function main()
         :setInputLimit(20)
         :setInputType("number")
         :setValue(0)
+        :setZIndex(1)
 
     local sendErrorLabel = sendMenu:addLabel()
         :setText("")
@@ -354,6 +355,22 @@ local function main()
         :setPosition("parent.w / 2 - 6", "parent.h - 2")
         :setSize(15, 3)
         :setBackground(colors.magenta)
+
+    local firstSuggession = sendMenu:addLabel()
+        :setText("")
+        :setForeground(colors.green)
+        :setPosition(20, 4)
+        :setSize(20, 1)
+        :setZIndex(5)
+
+    local recipientSuggessionList = sendMenu:addList()
+        :setPosition(1, 5)
+        :setSize(20, 10)
+        :setBackground(colors.gray)
+        :setZIndex(4)
+        :setSelectionColor(colors.lightBlue, colors.black)
+        :hide()
+
 
     local historyMenu = accountMenu
         :addFrame()
@@ -815,6 +832,13 @@ local function main()
     sendMenu:onKey(function(self, event, key)
         if self:isEnabled() then
             if key == keys.up then
+                local currentSelectedIndex = recipientSuggessionList:getItemIndex()
+                local suggessionsCount = recipientSuggessionList:getItemCount()
+
+                if recipientSuggessionList.isVisible() and suggessionsCount > 0 and currentSelectedIndex ~= 1 then
+                    return
+                end
+
                 if sendToInput:isFocused() then
                     backFromSendButton:setFocus()
                 elseif sendAmountInput:isFocused() then
@@ -824,7 +848,15 @@ local function main()
                 elseif backFromSendButton:isFocused() then
                     confirmSendButton:setFocus()
                 end
-            elseif key == keys.down or key == keys.tab then
+            
+            elseif key == keys.down then
+                local currentSelectedIndex = recipientSuggessionList:getItemIndex()
+                local suggessionsCount = recipientSuggessionList:getItemCount()
+
+                if recipientSuggessionList.isVisible() and suggessionsCount > 0 and (currentSelectedIndex ~= suggessionsCount and suggessionsCount > 1) then
+                    return
+                end
+
                 if sendToInput:isFocused() then
                     sendAmountInput:setFocus()
                 elseif sendAmountInput:isFocused() then
@@ -892,23 +924,101 @@ local function main()
         end
     end)
 
+
+    local function updateSuggessionList()
+        local value = sendToInput:getValue()
+        local charsCount = #value + 1
+        if charsCount < 3 or not sendToInput:isFocused() then
+            firstSuggession:setText("")
+            recipientSuggessionList:clear():hide()
+            return
+        end
+
+        local existingUsers = bankAPI.getRegisteredUsers()
+        local suggestions = {}
+        for i = 1, 5 do
+            if existingUsers[i] ~= nil and existingUsers[i]:find(value) == 1 then
+                table.insert(suggestions, existingUsers[i])
+            end
+        end
+        recipientSuggessionList:clear()
+        local suggessionsSize = math.min(5, #suggestions)
+        if suggessionsSize > 0 then
+            recipientSuggessionList:show()
+
+            for i = 1, suggessionsSize do
+                recipientSuggessionList:addItem(suggestions[i] or "EMPTY", colors.gray, colors.green)
+            end
+            recipientSuggessionList:setSize(20, suggessionsSize)
+
+            local selectedIndex = recipientSuggessionList:getItemIndex()
+            local selectedValue = recipientSuggessionList:getItem(selectedIndex).text
+            firstSuggession:setText(selectedValue:sub(charsCount))
+            firstSuggession:setPosition(charsCount, sendToInput:getY())
+        else
+            recipientSuggessionList:hide()
+            firstSuggession:setText("")
+            firstSuggession:setPosition(charsCount, sendToInput:getY())
+        end
+    end
+
+
     sendToInput:onKey(function(self, event, key)
+        local inputValue = self:getValue()
         if key == keys.enter then
-            if self.getValue() ~= "" then
+            if firstSuggession:getText() ~= "" then
+                self:setValue(inputValue .. firstSuggession:getText())
+                updateSuggessionList()
+            end
+
+            if inputValue ~= "" then
                 sendAmountInput:setFocus()
             end
             return false
         elseif key == keys.delete then
             local cursorPos = self:getTextOffset()
-            local value = tostring(self:getValue())
+            local value = tostring(inputValue)
             if cursorPos <= #value then
                 self:setValue(value:sub(1, cursorPos - 1) .. value:sub(cursorPos + 1))
                 self:setTextOffset(cursorPos)
             end
+        elseif key == keys.tab then
+            if firstSuggession:getText() ~= "" then
+                self:setValue(inputValue .. firstSuggession:getText())
+                updateSuggessionList()
+            end
+        elseif key == keys.down then
+            if recipientSuggessionList:isVisible() then
+                local selectedIndex = recipientSuggessionList:getItemIndex()
+                if selectedIndex < recipientSuggessionList:getItemCount() then
+                    recipientSuggessionList:selectItem(selectedIndex + 1)
+                    local selectedValue = recipientSuggessionList:getItem(selectedIndex + 1).text
+                    firstSuggession:setText(selectedValue:sub(#inputValue + 1))
+                    firstSuggession:setPosition(#inputValue + 1, sendToInput:getY())
+                end
+            end
+
+        elseif key == keys.up then
+            if recipientSuggessionList:isVisible() then
+                local selectedIndex = recipientSuggessionList:getItemIndex()
+                if selectedIndex > 1 then
+                    recipientSuggessionList:selectItem(selectedIndex - 1)
+                    local selectedValue = recipientSuggessionList:getItem(selectedIndex - 1).text
+                    firstSuggession:setText(selectedValue:sub(#inputValue + 1))
+                    firstSuggession:setPosition(#inputValue + 1, sendToInput:getY())
+                end
+            end
+            
         elseif key ==keys["end"] then
-            self:setTextOffset(#tostring(self:getValue()) + 1)
+            self:setTextOffset(#tostring(inputValue) + 1)
         elseif key == keys["home"] then
             self:setTextOffset(1)
+        end
+    end)
+
+    sendToInput:onKeyUp(function(self, event, key)
+        if key ~= keys.down then
+            updateSuggessionList()
         end
     end)
 
@@ -1115,6 +1225,11 @@ local function main()
 
     sendToInput:onGetFocus(function(self)
         lastSendMenuFocus = self
+    end)
+
+    sendToInput:onLoseFocus(function(self)
+        recipientSuggessionList:hide()
+        firstSuggession:setText("")
     end)
 
     sendAmountInput:onGetFocus(function(self)
