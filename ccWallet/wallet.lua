@@ -4,7 +4,7 @@ local basalt = require("basalt")
 local bankAPI = require("bankAPI")
 
 -- Config
-local disableLogging = false
+local disableLogging = true
 local modemSide = "back"
 
 local function getWalletServer()
