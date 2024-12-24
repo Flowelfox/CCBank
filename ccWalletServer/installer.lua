@@ -1,22 +1,21 @@
-local NAME = "Wallet Installer"
+local NAME = "Wallet Server Installer"
 
 local DOWNLOADS = {}
 local argStr = table.concat({...}, " ")
 
-DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/version.txt"
-DOWNLOADS[#DOWNLOADS + 1] = "https://basalt.madefor.cc/install.lua"
-DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/installer.lua"
-DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/wallet.lua"
+DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWalletServer/version.txt"
+DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWalletServer/server.lua"
+DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/lib/logging.lua"
 DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/lib/bankAPI.lua"
 DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/lib/sha256.lua"
 DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/lib/ecnet2.lua"
-DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/setupWalletServer.lua"
+
 
 local width, height = term.getSize()
 local totalDownloaded = 0
 local barLine = 6
 local line = 8
-local installFolder = "ccWallet"
+local installFolder = "ccWalletServer"
 local isPocket = false
 if pocket then
     isPocket = true
@@ -75,24 +74,10 @@ local function downloadAll(downloads, total)
         end)
     end
 end
-
-local function installBasalt()
-    if fs.exists("startup") then
-        fs.delete("startup")
-    end
-    shell.run(installFolder .. "/install.lua", "release", "latest.lua")
-    fs.delete(installFolder .. "/basalt.lua")
-    shell.run("mv", "basalt.lua", installFolder .. "/basalt.lua")
-    fs.delete(installFolder .. "/install.lua")
-end
-
 local function rewriteStartup()
     local file = fs.open("startup", "w")
-
-    file.writeLine("shell.run(\"".. installFolder .. "/installer.lua\")")
-    file.writeLine("shell.run(\"".. installFolder .. "/setupWalletServer.lua\")")
     file.writeLine("while (true) do")
-    file.writeLine("	shell.run(\"" .. installFolder .. "/wallet.lua\")")
+    file.writeLine("	shell.run(\"" .. installFolder .. "/server.lua\")")
     file.writeLine("	sleep(1)")
     file.writeLine("end")
     file.close()
@@ -121,8 +106,8 @@ local function removeOldVersion()
 end
 
 local function install()
-    if not isPocket then
-        printError("This installer is only for Pocket Computers!")
+    if isPocket then
+        printError("This installer is not intended for Pocket computer!")
     end
 
     -- Check version first without writing to file
@@ -153,12 +138,6 @@ local function install()
 
     removeOldVersion()
     downloadAll(DOWNLOADS, #DOWNLOADS)
-    update("Installing basalt...")
-    term.setTextColor(colors.black)
-    term.setBackgroundColor(colors.black)
-    term.setCursorPos(1, line + 1)
-
-    installBasalt()
     term.setCursorPos(1, line)
 
     term.setTextColor(colors.green)
