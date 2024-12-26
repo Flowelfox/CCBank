@@ -1,6 +1,6 @@
 local ecnet2 = require "ecnet2"
 local random = require "ccryptolib.random"
-local sha256 = require "sha256"
+local sha256 = require "ccryptolib.sha256"
 local logging = require "logging"
 
 
@@ -22,11 +22,18 @@ math.randomseed(os.time())
 local identity = ecnet2.Identity(".identity")
 -- Backend
 
+local function bin_to_hex(binary)
+    return (binary:gsub(".", function(c)
+      return ("%02x"):format(c:byte())
+    end))
+end
+  
+
 local User = {}
 function User.new(login, password)
     local self = {}
     self.login = login
-    self.password = sha256.hash(password)
+    self.password = bin_to_hex(sha256.pbkdf2(password, identity.address, 5))
     self.balance = 0
     self.transactions = {}
     self.history = {}
@@ -53,13 +60,14 @@ local function writeUsers(users)
 end
 
 
+
 local Session = {}
 function Session.new(login, deviceId, isPocket)
     local self = {
         login = login,
         deviceId = deviceId,
         isPocket = isPocket,
-        token = sha256.hash(login .. deviceId .. os.time()),
+        token = bin_to_hex(sha256.digest(login .. deviceId .. os.time())),
         created = os.time(os.date("*t"))
     }
 
@@ -282,7 +290,7 @@ local function main()
                         logging.info("User \"" .. login .. "\" not found")
                         connections[id]:send({type='error', message="Bad login or password"})
                     else
-                        local hashedPassword = sha256.hash(password)
+                        local hashedPassword = bin_to_hex(sha256.pbkdf2(password, identity.address, 5))
                         if users[login].password == hashedPassword then
                             local newSession = Session.new(login, p2, isPocket)
                             sessions[newSession.token] = newSession

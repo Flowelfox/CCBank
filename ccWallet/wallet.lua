@@ -1,5 +1,4 @@
 -- Imports
-local sha256 = require("sha256")
 local basalt = require("basalt")
 local bankAPI = require("bankAPI")
 
