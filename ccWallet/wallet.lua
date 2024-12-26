@@ -38,9 +38,20 @@ local function wrap(label1, label2, text, limit)
     end
 end
 
+local function getVersion()
+    local currentDirectory = fs.getDir(shell.getRunningProgram())
+    local versionFile = fs.open(currentDirectory .. "/version.txt", "r")
+    if not versionFile then
+        return "0.0.0"
+    end
+    local version = versionFile.readAll()
+    versionFile.close()
+    return version
+end
 
-local function main()
-    os.setComputerLabel("Wallet")
+local function main()    
+    local currentVersion = getVersion()
+    os.setComputerLabel("Wallet v" .. currentVersion)
     local isInitiated = bankAPI.init(server, modemSide, log)
     if isInitiated == false then
         printError("Failed to initialize API")

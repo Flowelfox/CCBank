@@ -12,7 +12,6 @@ local lastRunFile = '.lastRun'
 local serversChannel = 58235
 
 
-
 logging.setLoggingLevel(logging.INFO)
 logging.setLogFile("latest.log")
 logging.setWriteToTerminal(true)
@@ -28,6 +27,16 @@ local function bin_to_hex(binary)
     end))
 end
   
+local function getVersion()
+    local currentDirectory = fs.getDir(shell.getRunningProgram())
+    local versionFile = fs.open(currentDirectory .. "/version.txt", "r")
+    if not versionFile then
+        return "0.0.0"
+    end
+    local version = versionFile.readAll()
+    versionFile.close()
+    return version
+end
 
 local User = {}
 function User.new(login, password)
@@ -150,6 +159,8 @@ local function getModem()
 local connections = {}
 local function main()
     logging.info("Starting server...")
+    local currentVersion = getVersion()
+    os.setComputerLabel(serverName .. " v" .. currentVersion)
     ecnet2.open(getModemSide())
     
     -- Define a protocol.
