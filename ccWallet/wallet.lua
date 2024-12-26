@@ -440,7 +440,7 @@ local function main()
                     local history = user.history[historyIndex]
                     historyLabels[i]:setText(os.date("%R", history.time) .. ":" .. history.message)
                 else
-                    historyLabels[i]:setText("HIST")
+                    historyLabels[i]:setText("")
                 end
             end
         end
