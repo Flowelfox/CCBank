@@ -10,6 +10,7 @@ DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWalle
 DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/lib/ecnet2.lua"
 
 
+local disableComputerValidation = false
 local width, height = term.getSize()
 local totalDownloaded = 0
 local barLine = 6
@@ -104,9 +105,21 @@ local function removeOldVersion()
     end
 end
 
-local function install()
+local function validateComputer()
+    if disableComputerValidation then
+        return true
+    end
     if isPocket then
         printError("This installer is not intended for Pocket computer!")
+        return false
+    end
+    return true
+end
+
+local function install()
+    local canInstall = validateComputer()
+    if not canInstall then
+        return
     end
 
     -- Check version first without writing to file

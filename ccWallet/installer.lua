@@ -11,6 +11,7 @@ DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWalle
 DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/lib/ecnet2.lua"
 DOWNLOADS[#DOWNLOADS + 1] = "https://raw.githubusercontent.com/Flowelfox/CCWallet/main/ccWallet/setupWalletServer.lua"
 
+local disableComputerValidation = false
 local width, height = term.getSize()
 local totalDownloaded = 0
 local barLine = 6
@@ -119,9 +120,41 @@ local function removeOldVersion()
     end
 end
 
-local function install()
+local function getModemSide()
+    local sides = peripheral.getNames()
+    for _, side in ipairs(sides) do
+        if peripheral.getType(side) == "modem" then
+            return side
+        end
+    end
+    return nil
+end
+
+local function validateComputer()
+    if disableComputerValidation then
+        return true
+    end
+
     if not isPocket then
         printError("This installer is only for Pocket Computers!")
+        return false
+    end
+    local modemSide = getModemSide()
+    if not modemSide then
+        printError("No modem found, this can be installed on a Pocket Computer with a wireless modem!")
+        return false
+    end
+    local modem = peripheral.wrap(modemSide)
+    if not modem.isWireless() then
+        printError("This installer is only for Pocket Computers with a wireless modem!")
+        return false
+    end    
+    return true
+end
+
+local function install()
+    local canInstall = validateComputer()
+    if not canInstall then
         return
     end
 

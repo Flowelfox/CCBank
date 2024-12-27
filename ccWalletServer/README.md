@@ -24,8 +24,9 @@ Wallet Server is a Lua-based server application for managing virtual currency wi
 ## Configuration
 The application can be configured by modifying the following variables in the server.lua file:
 
-`serverName`: The name of the server.  
-`perDayAmount`: The amount of virtual currency given as a daily bonus.
+- `serverName`: The name of the server.  
+- `perDayAmount`: The amount of virtual currency given as a daily bonus.
+- `disableComputerValidation` in installer.lua to disable validation that computer is not pocket.
 
 
 ## File Structure

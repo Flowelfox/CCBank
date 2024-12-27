@@ -26,6 +26,7 @@ Wallet is a Lua-based application for managing virtual currency within the Minec
 The application can be configured by modifying the following variables in the `wallet.lua` file:
 
 - `disableLogging`: Set to `true` to disable logging.
+- `disableComputerValidation` in installer.lua to disable validation that computer is pocket with wireless modem.
 - Run setupWalletServer.lua to set or change main server for application to use.
 
 ## File Structure
